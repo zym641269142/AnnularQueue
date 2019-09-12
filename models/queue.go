@@ -5,5 +5,6 @@ type Task struct {
 	CurrentReplayCount int
 	CircleCount        int
 	ReplayCount        int
+	ReplayTime         int //second
 	Run                func() error
 }

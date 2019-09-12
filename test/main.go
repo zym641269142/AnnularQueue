@@ -10,7 +10,7 @@ func main() {
 
 	queue := queue.NewByChannel(60, 0)
 	go func() {
-		queue.AddTask(Fmt, 3,1)
+		queue.AddTask(Fmt, 3,2,0)
 		//for i := 0; i < 5; i++ {
 		//	queue.AddTask(Fmt2, 2,1)
 		//}

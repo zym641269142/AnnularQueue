@@ -34,7 +34,7 @@ func New(capacity int) _interface.Queue {
 	return queue
 }
 
-func (this *QueueByArray) AddTask(fun func() error, seconds int, replayCount int) {
+func (this *QueueByArray) AddTask(fun func() error, seconds int, replayCount int, replayTime int) {
 	fmt.Println("------加入任务:", fun)
 	task := models.Task{}
 	task.Run = fun

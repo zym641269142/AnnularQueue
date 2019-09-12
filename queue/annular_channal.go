@@ -12,15 +12,24 @@ import (
 /*******
   管道式消费队列，需要预估业务量
 	20190912 增加重试次数设置、增加
-	feature: 区分   默认：重试次数设置   自定义：多长时间后重试（重新添加任务的思路）
+	默认重试策略：仅需要重试次数设置，会在当前圈数再次轮到时重试
+	自定义重试策略：当重试时间不为0时启用自定义重试策略，设置重试次数和时间，将在经过重试时间后再次重试
  */
 
 const DEFAULT_CHANNEL_BUF = 10
 
+type replay_policy int
+
+const (
+	DEFAULT replay_policy = iota
+	TIME_REPLAY
+)
+
 type QueueByChannel struct {
 	CurrentCirclePosition int
 	Capacity              int
-	List                  []chan *models.Task
+	//ReplayPolicy          replay_policy
+	List []chan *models.Task
 }
 
 func NewByChannel(capacity int, meanwhile int) _interface.Queue {
@@ -41,11 +50,17 @@ func NewByChannel(capacity int, meanwhile int) _interface.Queue {
 	}
 	return queue
 }
-func (this *QueueByChannel) AddTask(fun func() error, seconds int, replayCount int) {
+
+//func (this *QueueByChannel) SetReplayPolicy(replayPolicy replay_policy) {
+//	this.ReplayPolicy = replayPolicy
+//}
+
+func (this *QueueByChannel) AddTask(fun func() error, seconds int, replayCount int, replayTime int) {
 	fmt.Println("------加入任务:", fun)
 	task := models.Task{}
 	task.Run = fun
 	task.ReplayCount = replayCount
+	task.ReplayTime = replayTime
 	//初始化当前的圈数
 	task.CurrentCircleCount = 1
 	//所需要的圈数
@@ -66,7 +81,7 @@ func (this *QueueByChannel) Run() {
 		time.Sleep(time.Second)
 		this.CurrentCirclePosition = i + 1
 		fmt.Println("第" + strconv.Itoa(i+1) + "段")
-		go ReadChan(this.List[i])
+		go this.ReadChan(this.List[i])
 		//最后一段循环完之后跳转回第一段，完成一圈环形链
 		if i == this.Capacity-1 {
 			i = -1
@@ -75,22 +90,22 @@ func (this *QueueByChannel) Run() {
 	select {}
 }
 
-func ReadChan(channel chan *models.Task) {
+func (this *QueueByChannel) ReadChan(channel chan *models.Task) {
 	//先计算出管道中的任务数量，不能直接使用len(channel)，因为len(channel)是可变量,也不能使用range循环，与数组逻辑不通管道不会先把任务复制一份，是实时提取
 	taskCount := len(channel)
 	for i := 0; i < taskCount; i++ {
 		task := <-channel
 		go func() {
-			err := Execute(task)
+			err := this.Execute(task)
 			if err != nil {
-				channel <- task
+				this.Replay(task, channel)
 			}
 		}()
 	}
 	return
 }
 
-func Execute(task *models.Task) error {
+func (this *QueueByChannel) Execute(task *models.Task) error {
 	//如任务当前圈数==任务触发的圈数 本圈执行
 	if task.CircleCount == task.CurrentCircleCount {
 		err := task.Run()
@@ -111,4 +126,20 @@ func Execute(task *models.Task) error {
 		return errors.New("本圈不执行")
 	}
 	return nil
+}
+
+func (this *QueueByChannel) Replay(task *models.Task, channel chan *models.Task) {
+	if task.ReplayTime > 0 {
+		this.TimeReplay(task)
+	} else {
+		this.DefaultReplay(task, channel)
+	}
+}
+
+func (this *QueueByChannel) DefaultReplay(task *models.Task, channel chan *models.Task) {
+	channel <- task
+}
+
+func (this *QueueByChannel) TimeReplay(task *models.Task) {
+	this.AddTask(task.Run, task.ReplayTime, task.ReplayCount-1, task.ReplayTime)
 }
