@@ -1,8 +1,9 @@
-package logic
+package queue
 
 import (
 	"AnnularQueue/models"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -14,10 +15,12 @@ type Queue struct {
 	List                  [][]*models.Task
 }
 
-func New() Queue {
+func New(capacity int) Queue {
 	queue := Queue{}
-	if queue.Capacity == 0 {
+	if capacity == 0 {
 		queue.Capacity = DEFAULT_COUNT
+	} else {
+		queue.Capacity = capacity
 	}
 	queue.List = make([][]*models.Task, queue.Capacity, queue.Capacity)
 	for i, _ := range queue.List {
@@ -26,11 +29,7 @@ func New() Queue {
 	return queue
 }
 
-//func (this Queue) SetCapacity(capacity int) {
-//	this.Capacity = capacity
-//}
-
-func (this Queue) AddTask(fun func(), seconds int) {
+func (this Queue) AddTask(fun func() error, seconds int) {
 	task := models.Task{}
 	task.Run = fun
 	//初始化当前的圈数
@@ -52,20 +51,30 @@ func (this Queue) Run() {
 	for i := 0; i < this.Capacity; i++ {
 		time.Sleep(time.Second)
 		this.CurrentCirclePosition = i + 1
-		//fmt.Println("第" + strconv.Itoa(i+1) + "位")
+		fmt.Println("第" + strconv.Itoa(i+1) + "段")
 		for j, tempTask := range this.List[i] {
 			go func(task *models.Task, x int, y int) {
+				//如任务当前圈数==任务触发的圈数 本圈执行
 				if task.CircleCount == task.CurrentCircleCount {
 					go func() {
-						task.Run()
-						this.List[x] = append(this.List[x][:y], this.List[x][y+1:]...)
-						fmt.Println()
+						err := task.Run()
+						if err != nil {
+							fmt.Printf("任务执行错误：%v,等待再次执行\n", err)
+							//任务执行失败，重置圈数等待执行
+							task.CurrentCircleCount = 1
+							return
+						} else {
+							//任务执行成功 删除任务
+							this.List[x] = append(this.List[x][:y], this.List[x][y+1:]...)
+						}
 					}()
 				} else {
+					//如本圈不执行，圈数加一
 					tempTask.CurrentCircleCount = tempTask.CurrentCircleCount + 1
 				}
 			}(tempTask, i, j)
 		}
+		//最后一段循环完之后跳转回第一段，完成一圈环形链
 		if i == this.Capacity-1 {
 			i = -1
 		}

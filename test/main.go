@@ -1,16 +1,41 @@
 package main
 
 import (
-	"AnnularQueue/logic"
+	"AnnularQueue/queue"
+	"errors"
 	"fmt"
+	"time"
 )
 
 func main() {
-	queue := logic.New()
-	queue.AddTask(Fmt, 61)
+
+	queue := queue.New(60)
+	go func() {
+		time.Sleep(time.Second*10)
+
+	}()
+	queue.AddTask(Fmt3, 61)
+	queue.AddTask(Fmt, 2)
+	queue.AddTask(Fmt2, 2)
 	queue.Run()
 }
 
-func Fmt() {
-	fmt.Println("hahahaha")
+func Fmt() error {
+	fmt.Println("第一个任务输出了，哈哈哈哈哈")
+	return errors.New("假装错误")
+}
+
+func Fmt2() error {
+	fmt.Println("第二个任务输出了，哈哈哈哈哈")
+	return nil
+}
+
+func Fmt3() error {
+	fmt.Println("第三个任务输出了，哈哈哈哈哈")
+	return nil
+}
+
+func Fmt4() error {
+	fmt.Println("运行中插入的任务4输出了，哈哈哈哈哈")
+	return nil
 }
