@@ -111,6 +111,7 @@ func (this *QueueByChannel) Execute(task *models.Task) error {
 		err := task.Run()
 		if err != nil {
 			fmt.Printf("任务执行错误：%v,等待再次执行\n", err)
+			//当前重试次数等于预设重试次数，则返回正确完成任务
 			if task.CurrentReplayCount == task.ReplayCount {
 				return nil
 			}
