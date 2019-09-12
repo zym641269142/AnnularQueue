@@ -4,21 +4,23 @@ import (
 	"AnnularQueue/queue"
 	"errors"
 	"fmt"
-	"time"
 )
 
 func main() {
 
-	queue := queue.New(60)
+	queue := queue.NewByChannel(60,0)
+	//go func() {
+	//	time.Sleep(time.Second*10)
+	//	queue.AddTask(Fmt4,5)
+	//}()
 	go func() {
-		time.Sleep(time.Second*10)
-		queue.AddTask(Fmt4,5)
-	}()
-	for i:=0;i<100;i++{
-		queue.AddTask(Fmt2, 2)
+		for i:=0;i<5;i++{
+		queue.AddTask(Fmt4, 2)
 	}
-	queue.AddTask(Fmt, 3)
-	queue.AddTask(Fmt3, 61)
+	//queue.AddTask(Fmt, 3)
+	//queue.AddTask(Fmt2, 3)
+	//queue.AddTask(Fmt3, 61)
+	}()
 	queue.Run()
 }
 

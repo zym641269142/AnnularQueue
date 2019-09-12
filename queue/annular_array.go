@@ -4,22 +4,24 @@ import (
 	"AnnularQueue/models"
 	"fmt"
 	"strconv"
-	"sync"
 	"time"
 )
+/*********
+	单任务执行，多任务将会出现任务删除时的错误
+*****/
 
 const DEFAULT_COUNT = 60
 
-var DelTaskLock = sync.Mutex{}
 
-type Queue struct {
+type QueueByArray struct {
 	CurrentCirclePosition int
 	Capacity              int
-	List                  [][]*models.Task
+	List                  [][] *models.Task
 }
 
-func New(capacity int) *Queue {
-	queue := &Queue{}
+
+func New(capacity int) *QueueByArray {
+	queue := &QueueByArray{}
 	if capacity == 0 {
 		queue.Capacity = DEFAULT_COUNT
 	} else {
@@ -32,7 +34,8 @@ func New(capacity int) *Queue {
 	return queue
 }
 
-func (this *Queue) AddTask(fun func() error, seconds int) {
+
+func (this *QueueByArray) AddTask(fun func() error, seconds int) {
 	fmt.Println("------加入任务:", fun)
 	task := models.Task{}
 	task.Run = fun
@@ -51,7 +54,7 @@ func (this *Queue) AddTask(fun func() error, seconds int) {
 	this.List[circlePosition-1] = append(this.List[circlePosition-1], &task)
 }
 
-func (this *Queue) Run() {
+func (this *QueueByArray) Run() {
 	for i := 0; i < this.Capacity; i++ {
 		time.Sleep(time.Second)
 		this.CurrentCirclePosition = i + 1
@@ -67,10 +70,8 @@ func (this *Queue) Run() {
 						task.CurrentCircleCount = 1
 						return
 					} else {
-						DelTaskLock.Lock()
 						//任务执行成功 删除任务
 						this.List[x] = append(this.List[x][:y], this.List[x][y+1:]...)
-						DelTaskLock.Unlock()
 					}
 				} else {
 					//如本圈不执行，圈数加一

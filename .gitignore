@@ -1,0 +1,7 @@
+.idea
+.project
+.idea/misc.xml
+.idea/workspace.xml
+lastupdate.tmp
+tests/lastupdate.tmp
+vendor
