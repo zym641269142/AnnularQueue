@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"AnnularQueue/interface"
 	"AnnularQueue/models"
 	"fmt"
 	"strconv"
@@ -20,7 +21,7 @@ type QueueByArray struct {
 }
 
 
-func New(capacity int) *QueueByArray {
+func New(capacity int) _interface.Queue {
 	queue := &QueueByArray{}
 	if capacity == 0 {
 		queue.Capacity = DEFAULT_COUNT

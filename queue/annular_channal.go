@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"AnnularQueue/interface"
 	"AnnularQueue/models"
 	"errors"
 	"fmt"
@@ -16,7 +17,7 @@ type QueueByChannel struct {
 	List                  []chan *models.Task
 }
 
-func NewByChannel(capacity int, meanwhile int) *QueueByChannel {
+func NewByChannel(capacity int, meanwhile int) _interface.Queue {
 	queue := &QueueByChannel{}
 	if capacity == 0 {
 		queue.Capacity = DEFAULT_COUNT
