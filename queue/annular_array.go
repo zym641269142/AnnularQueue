@@ -7,19 +7,18 @@ import (
 	"strconv"
 	"time"
 )
+
 /*********
 	单任务执行，多任务将会出现任务删除时的错误
 *****/
 
 const DEFAULT_COUNT = 60
 
-
 type QueueByArray struct {
 	CurrentCirclePosition int
 	Capacity              int
 	List                  [][] *models.Task
 }
-
 
 func New(capacity int) _interface.Queue {
 	queue := &QueueByArray{}
@@ -35,11 +34,11 @@ func New(capacity int) _interface.Queue {
 	return queue
 }
 
-
-func (this *QueueByArray) AddTask(fun func() error, seconds int) {
+func (this *QueueByArray) AddTask(fun func() error, seconds int, replayCount int) {
 	fmt.Println("------加入任务:", fun)
 	task := models.Task{}
 	task.Run = fun
+	task.ReplayCount = replayCount
 	//初始化当前的圈数
 	task.CurrentCircleCount = 1
 	//所需要的圈数
@@ -67,6 +66,11 @@ func (this *QueueByArray) Run() {
 					err := task.Run()
 					if err != nil {
 						fmt.Printf("任务执行错误：%v,等待再次执行\n", err)
+						if task.CurrentReplayCount == task.ReplayCount {
+							return
+						}
+						//重试次数++
+						task.CurrentReplayCount++
 						//任务执行失败，重置圈数等待执行
 						task.CurrentCircleCount = 1
 						return

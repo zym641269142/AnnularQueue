@@ -8,19 +8,17 @@ import (
 
 func main() {
 
-	queue := queue.NewByChannel(60,0)
-	//go func() {
-	//	time.Sleep(time.Second*10)
-	//	queue.AddTask(Fmt4,5)
-	//}()
+	queue := queue.NewByChannel(60, 0)
 	go func() {
-		for i:=0;i<5;i++{
-		queue.AddTask(Fmt4, 2)
-	}
-	//queue.AddTask(Fmt, 3)
+		queue.AddTask(Fmt, 3,1)
+		//for i := 0; i < 5; i++ {
+		//	queue.AddTask(Fmt2, 2,1)
+		//}
+		//time.Sleep(time.Second*10)
+		//queue.AddTask(Fmt4,5)
+	}()
 	//queue.AddTask(Fmt2, 3)
 	//queue.AddTask(Fmt3, 61)
-	}()
 	queue.Run()
 }
 
