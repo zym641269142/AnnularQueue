@@ -4,10 +4,13 @@ import (
 	"AnnularQueue/models"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 )
 
 const DEFAULT_COUNT = 60
+
+var DelTaskLock = sync.Mutex{}
 
 type Queue struct {
 	CurrentCirclePosition int
@@ -15,8 +18,8 @@ type Queue struct {
 	List                  [][]*models.Task
 }
 
-func New(capacity int) Queue {
-	queue := Queue{}
+func New(capacity int) *Queue {
+	queue := &Queue{}
 	if capacity == 0 {
 		queue.Capacity = DEFAULT_COUNT
 	} else {
@@ -29,7 +32,8 @@ func New(capacity int) Queue {
 	return queue
 }
 
-func (this Queue) AddTask(fun func() error, seconds int) {
+func (this *Queue) AddTask(fun func() error, seconds int) {
+	fmt.Println("------加入任务:", fun)
 	task := models.Task{}
 	task.Run = fun
 	//初始化当前的圈数
@@ -47,7 +51,7 @@ func (this Queue) AddTask(fun func() error, seconds int) {
 	this.List[circlePosition-1] = append(this.List[circlePosition-1], &task)
 }
 
-func (this Queue) Run() {
+func (this *Queue) Run() {
 	for i := 0; i < this.Capacity; i++ {
 		time.Sleep(time.Second)
 		this.CurrentCirclePosition = i + 1
@@ -56,18 +60,18 @@ func (this Queue) Run() {
 			go func(task *models.Task, x int, y int) {
 				//如任务当前圈数==任务触发的圈数 本圈执行
 				if task.CircleCount == task.CurrentCircleCount {
-					go func() {
-						err := task.Run()
-						if err != nil {
-							fmt.Printf("任务执行错误：%v,等待再次执行\n", err)
-							//任务执行失败，重置圈数等待执行
-							task.CurrentCircleCount = 1
-							return
-						} else {
-							//任务执行成功 删除任务
-							this.List[x] = append(this.List[x][:y], this.List[x][y+1:]...)
-						}
-					}()
+					err := task.Run()
+					if err != nil {
+						fmt.Printf("任务执行错误：%v,等待再次执行\n", err)
+						//任务执行失败，重置圈数等待执行
+						task.CurrentCircleCount = 1
+						return
+					} else {
+						DelTaskLock.Lock()
+						//任务执行成功 删除任务
+						this.List[x] = append(this.List[x][:y], this.List[x][y+1:]...)
+						DelTaskLock.Unlock()
+					}
 				} else {
 					//如本圈不执行，圈数加一
 					tempTask.CurrentCircleCount = tempTask.CurrentCircleCount + 1
